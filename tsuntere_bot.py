@@ -184,6 +184,10 @@ async def on_message(message):
             print(f"Gemini error:{e}")
             if "429" in str(e):
                 reply="Rulerは休みに入りました。しばらく待ってから再度会話してね。"
+            
+            elif "503" in str(e):
+                reply="Rulerは今すごく忙しいみたい....。少し待ってからもう一度話しかけてね！"
+            
             else:
                 reply=f"Rulerは就寝中のようです：{e}"
         try:
