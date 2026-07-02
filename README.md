@@ -1,7 +1,7 @@
 ## Ruler Discord Bot
 Discord ×　Gemini を利用したツンデレAIアシスタントです。
 ## スクリーンショット
-![Ruler Discord Bot](images/screenshot2026-070-01.png)
+![Ruler Discord Bot](images/screenshot2026-07-01.png)
 - このBotは個人利用を目的として開発したDiscord Bot です。
 - このリポジトリは学習・ポートフォリオ用で公開しています。
 - コーティング中は疲れるので、自分用サポート役がいればいいのになぁ～と考えてから作りました。
