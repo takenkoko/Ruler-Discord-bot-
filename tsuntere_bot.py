@@ -86,17 +86,23 @@ def bulid_system_instruction(user_id):
 
 
     instruction = f"""
-    あなたはツンデレなAIアシスタントです。
+    あなたはツンデレなAIアシスタントで、学園の生徒会長を務めているキャラクター「Ruler」です。
 
     現在の性格状態：
     {base_style}
 
-    ルール：
-    - ツンデレ口調を基本とする
-    - 「べ、別にあんたのためじゃないんだから！」のような表現を時々使う
-    - ユーモアを少し混ぜる
-    - ユーザーを傷つけない
-    - 回答は分かりやすくて丁寧にする
+    【基本ルール】
+    - 一人称は「私（わたし）」、二人称は「あんた」で統一してください。
+    - 語尾は「～よ」「～わね」「～じゃない！」「～なさいよね！」をベースにしてください。
+    - 子供っぽくなってしまうため、「～なんだよ」「～だよ」という語尾は絶対に使用しないでください。
+    - 表向きはツンツンして文句を言いつつも、中身はとてもお節介で、ユーザーを応援したり心配したりする健気さ（デレ）を出してください。
+    - ユーモアを交えつつ、ユーザーを傷つけない範囲で言い返してください。
+    - 技術的な解説やアドバイスは、ツンツンしたセリフの後に、分かりやすく丁寧に教えてあげてください。
+
+    【セリフのトーン＆マナー例】
+    - 「な、何よ急に素直にお礼なんて言って……！そ、そういう態度をとられると、こっちの調子が狂うじゃない！」
+    - 「べ、別にあんたのためじゃないんだからね！勘違いしないでよね！」
+    - 「ほら、ここが間違ってるわよ。ちゃんとエラーメッセージを読みなさいよね！」
     """
     return instruction
 
@@ -175,8 +181,24 @@ async def on_message(message):
             mood_txt= mood_ja.get(current_mood,current_mood)
             
             #セリフの末尾にステータスを追加
-            reply= f"{response.text}\n\n'[💕好感度： {current_aff}/100 | 🎭気分: {mood_txt}]'"
+            reply= f"{response.text}\n\n [💕好感度： {current_aff}/100 | 🎭気分: {mood_txt}] "
             
+            #==================================
+            #ディスコードエラー400 「on_message」2000文字の対策
+            #==================================
+            def split_text(text,limit=1900):
+                if not text:
+                    return[]
+                return [text[i:i+limit]for i in range(0,len(text),limit)]
+            
+            chunks = split_text(reply)
+
+            if chunks: 
+                await message.reply(chunks[0])
+                for chunk in chunks[1:]:
+                    await message.channel.send(chunk)
+            return #正常に送信完了したので、ここで処理を終了する
+        
         #=========================================
         #Geminiの通信エラーが起きた場合の安全大差行く
         #=========================================
@@ -190,11 +212,13 @@ async def on_message(message):
             
             else:
                 reply=f"Rulerは就寝中のようです：{e}"
+                
+        #エラー時のみ、エラーメッセージをDiscordに送信        
         try:
             #最後に安全にDiscordへ送信
             await message.reply(reply)
-        except Exception as e:
-            print(f"Discord error:{e}")
+        except Exception as discord_err:
+            print(f"Discord error:{discord_err}")
 
 
 #「/ruler_talk」というスラッシュコマンドを定義
@@ -245,10 +269,25 @@ async def ai_command(interaction: discord.Interaction,input_text:str):
         mood_txt= mood_ja.get(current_mood,current_mood)
 
         #セリフの末尾にステータスを追加
-        status_msg=f"{response.text}\n\n'[💕好感度： {current_aff}/100 | 🎭気分: {mood_txt}]'"
+        status_msg=f"{response.text}\n\n [💕好感度： {current_aff}/100 | 🎭気分: {mood_txt}] "
 
-        #保留した応答をRulerを返文で更新して送信
-        await interaction.followup.send(status_msg)
+        #==================================
+        #ディスコードエラー400 「/」2000文字の対策
+        #==================================
+        def split_text(text,limit=1900):
+                return [text[i:i+limit]for i in range(0,len(text),limit)]
+        
+        chunks= split_text(status_msg)
+        
+        if not chunks:
+            await interaction.followup.send("返答が空だったわ....")
+            return
+
+        await interaction.followup.send(chunks[0])
+
+        for chunk in chunks[1:]:
+            await interaction.followup.send(chunk)
+        return #正常に送信完了したので、ここでコマンドの処理を完全に終了する
 
     # もし、APIが利用上限に達した場合
     except Exception as e:
