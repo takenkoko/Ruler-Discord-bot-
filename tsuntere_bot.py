@@ -6,6 +6,7 @@ from google import genai
 from google.genai import types
 import random
 import asyncio
+import sqlite3 #SQLite3を追加
 
 #.envを読み込む
 load_dotenv()
@@ -38,14 +39,42 @@ MOOD_STYLE ={
 
 #保存領域追加
 user_moods={}
-user_affinity={}
+#user_affinity={}
 chat_sessions={}#チャンネルごとのチャットセッション
+
+#===========================
+# SQLite接続
+#===========================
+conn = sqlite3.connect("ruler.db")
+cursor = conn.cursor()
+
+cursor.execute(
+    """
+CREATE TABLE IF NOT EXISTS users(
+user_id INTEGER PRIMARY KEY,
+affinity INTEGER DEFAULT 50 )
+"""
+)
+
+conn.commit()
 
 #好感度関数を追加
 def get_affinity(user_id):
-    if user_id not in user_affinity:
-        user_affinity[user_id]=50
-    return user_affinity[user_id]
+    cursor.execute(
+        "SELECT affinity FROM users WHERE user_id=?",
+        (user_id,)
+    )
+
+    row = cursor.fetchone()
+
+    if row is None:
+        cursor.execute(
+            "INSERT INTO users(user_id, affinity) VALUES(?,?)",
+            (user_id,50)
+        )
+        conn.commit()
+        return 50
+    return row[0]
 
 #好感度更新
 def update_affinity(user_id,message):
@@ -60,7 +89,14 @@ def update_affinity(user_id,message):
     else:    #日常会話が少し上がる
         aff += 1
         
-    user_affinity[user_id]=max(0,min(100,aff))
+    aff = max(0,min(100,aff))
+
+    cursor.execute(
+        "UPDATE users SET affinity=? WHERE user_id=?",
+        (aff,user_id)
+    )
+
+    conn.commit()
     
 
 
